@@ -50,16 +50,31 @@ for i in range(len(polls_list)):
     sanders_google = interest_over_time_df['Sanders'].mean()
     biden_google = interest_over_time_df['Biden'].mean()
     warren_google = interest_over_time_df['Warren'].mean()
-    polls_list[i].append(buttigieg_google)
-    polls_list[i].append(sanders_google)
-    polls_list[i].append(biden_google)
-    polls_list[i].append(warren_google)
+    polls_list[i].extend([buttigieg_google, sanders_google, biden_google, warren_google])
 
 # Dataset Evaluation
 poll_dataset = pd.DataFrame(polls_list) 
 
+# Flat Linear Regression
+X_original = poll_dataset[2].append([poll_dataset[3], poll_dataset[4], poll_dataset[5]]).reset_index(drop=True)
+y_original = poll_dataset[6].append([poll_dataset[7], poll_dataset[8], poll_dataset[9]]).reset_index(drop=True)
+flat_dataset_original = pd.concat([X_original, y_original], axis=1)
+flat_dataset_original = flat_dataset_original.drop([26, 27])
+flat_dataset_original[0] = flat_dataset_original[0].astype(int)
 
+flat_dataset = flat_dataset_original.sort_values(by=0)
+plt.scatter(flat_dataset_original[0], flat_dataset_original[1], color = 'red')
 
+from sklearn.linear_model import LinearRegression
+regressor = LinearRegression()
+
+X_train = flat_dataset_original[0].values.reshape(-1,1)
+y_train = flat_dataset_original[1].values.reshape(-1,1)
+
+# Actual Data v. Regression CHart
+regressor.fit(X_train, y_train)
+plt.scatter(X_train, y_train, color = 'red')
+plt.plot(X_train, regressor.predict(X_train), color = 'blue')
 
 
 
