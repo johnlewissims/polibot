@@ -7,12 +7,13 @@ import pandas as pd
 pytrend = TrendReq()
 
 iowa = "https://www.realclearpolitics.com/epolls/2020/president/ia/iowa_democratic_presidential_caucus-6731.html" 
+kw_list = ['Buttigieg', 'Sanders', 'Biden', 'Warren']
 
 page = requests.get(iowa)
 contents = page.content
 soup = BeautifulSoup(contents, 'html.parser')
 mysoup = soup.body.find(id="polling-data-full").table
-polls = []
+polls_list = []
 rows = mysoup.find_all('tr')
 for row in rows:
     d = row.find_all('td')
@@ -30,20 +31,50 @@ for row in rows:
             year = "2019-"
             start_date = year + dates[0].replace("/", "-")
             end_date = year + dates[1].replace("/", "-")
-            tf = start_date + " " + end_date
-            
-            # Google Trends
-            kw_list = ['Buttigieg', 'Sanders', 'Biden', 'Warren']
-            pytrend.build_payload(kw_list=kw_list, timeframe='2019-10-10 2019-11-10', geo='US-IA')
-            interest_over_time_df = pytrend.interest_over_time()
-            #print(interest_over_time_df['Biden'].mean())
-            buttigieg_google = interest_over_time_df['Buttigieg'].mean()
-            sanders_google = interest_over_time_df['Sanders'].mean()
-            biden_google = interest_over_time_df['Biden'].mean()
-            warren_google = interest_over_time_df['Warren'].mean()
-            
-            single_poll = [poll_name.text, date.text, buttigieg.text, sanders.text, biden.text, warren.text, buttigieg_google, sanders_google, biden_google, warren_google]
-            polls.append(single_poll)
+        
+            fixed_start = pd.to_datetime(start_date, format='%Y-%m-%d').date()
+            fixed_end = pd.to_datetime(end_date, format='%Y-%m-%d').date()
+            if fixed_start < fixed_end:
+                string_start = fixed_start.strftime("%Y-%m-%d")
+                string_end = fixed_end.strftime("%Y-%m-%d")
+                
+                tf = string_start + " " + string_end
+                single_poll = [poll_name.text, tf, buttigieg.text, sanders.text, biden.text, warren.text]
+                polls_list.append(single_poll)
 
-# Dataset
-poll_dataset = pd.DataFrame(polls) 
+# Google Trends
+for i in range(len(polls_list)):
+    pytrend.build_payload(kw_list=kw_list, timeframe=polls_list[i][1], geo='US-IA')
+    interest_over_time_df = pytrend.interest_over_time()
+    buttigieg_google = interest_over_time_df['Buttigieg'].mean()
+    sanders_google = interest_over_time_df['Sanders'].mean()
+    biden_google = interest_over_time_df['Biden'].mean()
+    warren_google = interest_over_time_df['Warren'].mean()
+    polls_list[i].append(buttigieg_google)
+    polls_list[i].append(sanders_google)
+    polls_list[i].append(biden_google)
+    polls_list[i].append(warren_google)
+
+# Dataset Evaluation
+poll_dataset = pd.DataFrame(polls_list) 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
